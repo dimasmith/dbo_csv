@@ -3,13 +3,19 @@
 //! The format is used by the popular online bank.
 use std::io::{BufReader, Read};
 
-use anyhow::bail;
 use encoding_rs::WINDOWS_1251;
 use encoding_rs_rw::DecodingReader;
+use thiserror::Error;
 
 use crate::record::{DboRecord, DboStatement};
 
-pub fn deserialize_statement<R>(reader: R) -> anyhow::Result<DboStatement>
+#[derive(Debug, Error)]
+pub enum DboCsvError {
+    #[error("failed to deserialize row {row_number} in the statement. the issue is {message}")]
+    InvalidRecord { row_number: usize, message: String },
+}
+
+pub fn deserialize_statement<R>(reader: R) -> Result<DboStatement, DboCsvError>
 where
     R: Read,
 {
@@ -21,10 +27,15 @@ where
         .from_reader(&mut reader);
     let record_iter = csv_reader.deserialize::<DboRecord>().skip(1);
     let mut records = vec![];
-    for r in record_iter {
+    for (idx, r) in record_iter.enumerate() {
         match r {
             Ok(record) => records.push(record),
-            Err(err) => bail!(err),
+            Err(err) => {
+                return Err(DboCsvError::InvalidRecord {
+                    row_number: idx,
+                    message: err.to_string(),
+                });
+            }
         }
     }
     Ok(DboStatement::new(records))

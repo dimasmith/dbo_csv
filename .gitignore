@@ -1,2 +1,5 @@
 # rust build files
 /target/
+
+# intellij
+.idea/

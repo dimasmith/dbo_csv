@@ -9,55 +9,11 @@ use csv::StringRecord;
 use encoding_rs::WINDOWS_1251;
 use encoding_rs_rw::DecodingReader;
 
+use crate::record::{DboRecord, DboStatement};
+
 const DATE_COLUMN: usize = 4;
 const AMOUNT_COLUMN: usize = 14;
 const DESCRIPTION_COLUMN: usize = 15;
-
-#[derive(Debug)]
-pub struct DboStatement {
-    records: Vec<DboRecord>,
-}
-
-#[derive(Debug, Clone)]
-pub struct DboRecord {
-    pub date: NaiveDateTime,
-    pub amount: f64,
-    pub comment: String,
-}
-
-impl PartialEq for DboRecord {
-    fn eq(&self, other: &Self) -> bool {
-        self.date == other.date && self.amount == other.amount
-    }
-}
-
-impl Eq for DboRecord {}
-
-impl PartialOrd for DboRecord {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for DboRecord {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.date.cmp(&other.date)
-    }
-}
-
-impl DboStatement {
-    pub fn iter(&self) -> impl Iterator<Item = &DboRecord> {
-        self.records.iter()
-    }
-
-    pub fn len(&self) -> usize {
-        self.records.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.records.is_empty()
-    }
-}
 
 /// Reads incomes from DBOsoft-compatible CSV files.
 /// The filter allows to pick incomes for particular date range.
@@ -70,15 +26,14 @@ where
         .delimiter(b';')
         .flexible(true)
         .from_reader(&mut reader);
-    let mut incomes = Vec::new();
+    let mut records = Vec::new();
     for result in csv_reader.records() {
         let record = result.context("failed to read record")?;
         let income = income_from_csv(&record)?;
-        incomes.push(income);
+        records.push(income);
     }
-    incomes.sort();
 
-    Ok(DboStatement { records: incomes })
+    Ok(DboStatement::new(records))
 }
 
 fn income_from_csv(record: &StringRecord) -> anyhow::Result<DboRecord> {

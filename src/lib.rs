@@ -1,3 +1,5 @@
-pub mod dbo;
+pub mod csv;
+pub mod record;
 
-pub use dbo::read_statement;
+pub use csv::read_statement;
+pub use record::{DboRecord, DboStatement};

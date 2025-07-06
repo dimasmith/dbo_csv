@@ -3,7 +3,7 @@
 use std::fs::File;
 
 use chrono::NaiveDateTime;
-use dbo_csv::dbo::DboRecord;
+use dbo_csv::record::DboRecord;
 
 fn record(date: &str, amount: f64) -> DboRecord {
     let income_date = NaiveDateTime::parse_from_str(date, "%d.%m.%Y %H:%M:%S").unwrap();

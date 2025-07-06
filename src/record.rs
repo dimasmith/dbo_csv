@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 use serde::Deserialize;
 use serde::Deserializer;
+use serde::de::Error;
 
 /// A collection of DBO records.
 /// Records in statement are always sorted by the operaton date in ascending order.
@@ -90,8 +91,13 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    let dt = NaiveDateTime::parse_from_str(&s, OPERATION_DATE_FORMAT)
-        .map_err(serde::de::Error::custom)?;
+    let dt = NaiveDateTime::parse_from_str(&s, OPERATION_DATE_FORMAT).map_err(|_| {
+        let message = format!(
+            "invalid operation date format [column 5]: expected format {OPERATION_DATE_FORMAT}, the date was {s}",
+        );
+
+        Error::custom(message)
+    })?;
     Ok(dt)
 }
 
@@ -100,7 +106,12 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    let dt =
-        NaiveDate::parse_from_str(&s, DOCUMENT_DATE_FORMAT).map_err(serde::de::Error::custom)?;
+    let dt = NaiveDate::parse_from_str(&s, DOCUMENT_DATE_FORMAT).map_err(|_| {
+        let message = format!(
+            "invalid document date format [column 13]: expected format {DOCUMENT_DATE_FORMAT}, the date was {s}",
+        );
+
+        Error::custom(message)
+    })?;
     Ok(dt)
 }

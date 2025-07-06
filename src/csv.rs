@@ -32,7 +32,7 @@ where
             Ok(record) => records.push(record),
             Err(err) => {
                 return Err(DboCsvError::InvalidRecord {
-                    row_number: idx,
+                    row_number: idx + 2, // the DBO files have headers and numbering starts with 1
                     message: err.to_string(),
                 });
             }

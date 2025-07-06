@@ -3,21 +3,13 @@
 //! The format is used by the popular online bank.
 use std::io::{BufReader, Read};
 
-use anyhow::Context;
-use chrono::NaiveDateTime;
-use csv::StringRecord;
+use anyhow::bail;
 use encoding_rs::WINDOWS_1251;
 use encoding_rs_rw::DecodingReader;
 
 use crate::record::{DboRecord, DboStatement};
 
-const DATE_COLUMN: usize = 4;
-const AMOUNT_COLUMN: usize = 14;
-const DESCRIPTION_COLUMN: usize = 15;
-
-/// Reads incomes from DBOsoft-compatible CSV files.
-/// The filter allows to pick incomes for particular date range.
-pub fn read_statement<R>(reader: R) -> anyhow::Result<DboStatement>
+pub fn deserialize_statement<R>(reader: R) -> anyhow::Result<DboStatement>
 where
     R: Read,
 {
@@ -25,33 +17,15 @@ where
     let mut csv_reader = csv::ReaderBuilder::new()
         .delimiter(b';')
         .flexible(true)
+        .has_headers(false)
         .from_reader(&mut reader);
-    let mut records = Vec::new();
-    for result in csv_reader.records() {
-        let record = result.context("failed to read record")?;
-        let income = income_from_csv(&record)?;
-        records.push(income);
+    let record_iter = csv_reader.deserialize::<DboRecord>().skip(1);
+    let mut records = vec![];
+    for r in record_iter {
+        match r {
+            Ok(record) => records.push(record),
+            Err(err) => bail!(err),
+        }
     }
-
     Ok(DboStatement::new(records))
-}
-
-fn income_from_csv(record: &StringRecord) -> anyhow::Result<DboRecord> {
-    let date = record
-        .get(DATE_COLUMN)
-        .ok_or_else(|| anyhow::anyhow!("date not found"))?;
-    let amount = record
-        .get(AMOUNT_COLUMN)
-        .ok_or_else(|| anyhow::anyhow!("amount not found"))?;
-    let comment = record
-        .get(DESCRIPTION_COLUMN)
-        .ok_or_else(|| anyhow::anyhow!("comment not found"))?;
-    let date =
-        NaiveDateTime::parse_from_str(date, "%d.%m.%Y %H:%M:%S").context("failed to parse date")?;
-    let amount = amount.parse().context("failed to parse amount")?;
-    Ok(DboRecord {
-        date,
-        amount,
-        comment: comment.to_string(),
-    })
 }

@@ -60,6 +60,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -100,6 +101,7 @@ dependencies = [
  "csv",
  "encoding_rs",
  "encoding_rs_rw",
+ "serde",
 ]
 
 [[package]]

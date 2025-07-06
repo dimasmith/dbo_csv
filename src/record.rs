@@ -1,4 +1,7 @@
+use chrono::NaiveDate;
 use chrono::NaiveDateTime;
+use serde::Deserialize;
+use serde::Deserializer;
 
 /// A collection of DBO records.
 /// Records in statement are always sorted by the operaton date in ascending order.
@@ -7,13 +10,27 @@ pub struct DboStatement {
     records: Vec<DboRecord>,
 }
 
-/// A raw DBO record.
-/// Built-in comparisons accounts only for entry date and amount.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct DboRecord {
-    pub date: NaiveDateTime,
-    pub amount: f64,
-    pub comment: String,
+    pub party_tax_id: String,
+    pub party_bank_id: String,
+    pub party_account: String,
+    pub currency: String,
+    #[serde(deserialize_with = "deserialize_operation_date_format")]
+    pub operation_date: NaiveDateTime,
+    pub operation_code: String,
+    pub counterparty_bank_id: String,
+    pub payment_provider: String,
+    pub counterparty_account: String,
+    pub counterparty_tax_id: String,
+    pub counterparty_name: String,
+    pub document_number: String,
+    #[serde(deserialize_with = "deserialize_document_date_format")]
+    pub document_date: NaiveDate,
+    pub debit: Option<f64>,
+    pub credit: Option<f64>,
+    pub payment_purpose: String,
+    pub coverage: f64,
 }
 
 impl DboStatement {
@@ -21,10 +38,33 @@ impl DboStatement {
         records.sort();
         DboStatement { records }
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &DboRecord> {
+        self.records.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.records.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.records.is_empty()
+    }
 }
+
+impl DboRecord {
+    pub fn from_date_and_amount(operation_date: NaiveDateTime, amount: f64) -> Self {
+        DboRecord {
+            operation_date,
+            coverage: amount,
+            ..Default::default()
+        }
+    }
+}
+
 impl PartialEq for DboRecord {
     fn eq(&self, other: &Self) -> bool {
-        self.date == other.date && self.amount == other.amount
+        self.operation_date == other.operation_date && self.coverage == other.coverage
     }
 }
 
@@ -38,20 +78,29 @@ impl PartialOrd for DboRecord {
 
 impl Ord for DboRecord {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.date.cmp(&other.date)
+        self.operation_date.cmp(&other.operation_date)
     }
 }
 
-impl DboStatement {
-    pub fn iter(&self) -> impl Iterator<Item = &DboRecord> {
-        self.records.iter()
-    }
+const OPERATION_DATE_FORMAT: &str = "%d.%m.%Y %H:%M:%S";
+const DOCUMENT_DATE_FORMAT: &str = "%d.%m.%Y";
 
-    pub fn len(&self) -> usize {
-        self.records.len()
-    }
+fn deserialize_operation_date_format<'de, D>(deserializer: D) -> Result<NaiveDateTime, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    let dt = NaiveDateTime::parse_from_str(&s, OPERATION_DATE_FORMAT)
+        .map_err(serde::de::Error::custom)?;
+    Ok(dt)
+}
 
-    pub fn is_empty(&self) -> bool {
-        self.records.is_empty()
-    }
+fn deserialize_document_date_format<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    let dt =
+        NaiveDate::parse_from_str(&s, DOCUMENT_DATE_FORMAT).map_err(serde::de::Error::custom)?;
+    Ok(dt)
 }

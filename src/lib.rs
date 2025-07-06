@@ -1,5 +1,5 @@
 pub mod csv;
 pub mod record;
 
-pub use csv::read_statement;
+pub use csv::deserialize_statement;
 pub use record::{DboRecord, DboStatement};

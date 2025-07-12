@@ -51,6 +51,10 @@ impl DboStatement {
     pub fn is_empty(&self) -> bool {
         self.records.is_empty()
     }
+
+    pub fn into_inner(self) -> Vec<DboRecord> {
+        self.records
+    }
 }
 
 impl DboRecord {

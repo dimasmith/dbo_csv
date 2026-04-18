@@ -103,9 +103,9 @@ dependencies = [
 
 [[package]]
 name = "encoding_rs_rw"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "597f4ee99dceffde445d4c238343d4c54f7c701db102538e91674a1fbfdf930f"
+checksum = "c5aab15dedf14ff0b6f0a599b40d73a514016d4419e7c270d06549170be7a217"
 dependencies = [
  "encoding_rs",
 ]
